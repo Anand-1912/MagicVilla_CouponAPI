@@ -1,5 +1,6 @@
 using MagicVilla_CouponAPI.Data;
 using MagicVilla_CouponAPI.Models;
+using Microsoft.AspNetCore.Mvc.Formatters;
 using System.Diagnostics.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,7 +20,10 @@ if (app.Environment.IsDevelopment())
 }
 
 
-app.MapGet("/api/coupon", () => Results.Ok(CouponStore.couponList)).WithName("GetCoupons");
+app.
+    MapGet("/api/coupon", () => Results.Ok(CouponStore.couponList))
+    .WithName("GetCoupons")
+    .Produces<IEnumerable<Coupon>>(200);
 
 app.MapGet("/api/coupon/{id:int}", (int id) => {
 
@@ -32,7 +36,9 @@ app.MapGet("/api/coupon/{id:int}", (int id) => {
         return Results.NotFound("Invalid Coupon"); 
     }
 
-}).WithName("GetCoupon"); ;
+})
+    .WithName("GetCoupon")
+    .Produces<Coupon>(200); ;
 
 app.MapPost("/api/coupon", (Coupon coupon) => {
 
@@ -50,9 +56,15 @@ app.MapPost("/api/coupon", (Coupon coupon) => {
         // return Results.Created($"api/coupon/{coupon.Id}",coupon);
         return Results.CreatedAtRoute("GetCoupon",new { id = coupon.Id }, coupon);
     }
-}).WithName("CreateCoupon"); ;
+})
+    .WithName("CreateCoupon")
+    .Produces<Coupon>(201)
+    .Produces(400)
+    .Accepts<Coupon>("application/json");
 
-app.MapPut("/api/coupon", () => { });
+app.MapPut("/api/coupon", () => { })
+    .WithName("UpdateCoupon")
+    .Produces(200);
 
 app.MapDelete("/api/coupon/{id:int}", (int id) =>
 {
@@ -67,7 +79,8 @@ app.MapDelete("/api/coupon/{id:int}", (int id) =>
         CouponStore.couponList.Remove(coupon);
         return Results.Ok();
     }
-});
+}).WithName("DeleteCoupon")
+    .Produces(200);
 
 app.UseHttpsRedirection();
 
