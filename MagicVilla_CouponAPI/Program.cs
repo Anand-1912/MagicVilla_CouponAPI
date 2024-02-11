@@ -1,5 +1,6 @@
 using MagicVilla_CouponAPI.Data;
 using MagicVilla_CouponAPI.Models;
+using MagicVilla_CouponAPI.Models.DTO;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using System.Diagnostics.Contracts;
 
@@ -21,7 +22,11 @@ if (app.Environment.IsDevelopment())
 
 
 app.
-    MapGet("/api/coupon", () => Results.Ok(CouponStore.couponList))
+    MapGet("/api/coupon", (ILogger<Program> _logger) => {
+
+        _logger.LogInformation("Listing all Coupons");
+        return Results.Ok(CouponStore.couponList);
+        })
     .WithName("GetCoupons")
     .Produces<IEnumerable<Coupon>>(200);
 
@@ -40,27 +45,46 @@ app.MapGet("/api/coupon/{id:int}", (int id) => {
     .WithName("GetCoupon")
     .Produces<Coupon>(200); ;
 
-app.MapPost("/api/coupon", (Coupon coupon) => {
+app.MapPost("/api/coupon", (CouponCreateDto coupon) => {
 
-    if ( string.IsNullOrEmpty(coupon.Name))
+    if (string.IsNullOrEmpty(coupon.Name))
     {
         return Results.BadRequest("Invalid Coupon Name!");
     }
-    else if ( CouponStore.couponList.Any( cpn => cpn.Name.Equals(coupon.Name, StringComparison.InvariantCultureIgnoreCase) || cpn.Id == coupon.Id ))      
+    else if ( CouponStore.couponList.Any( cpn => cpn.Name.Equals(coupon.Name, StringComparison.InvariantCultureIgnoreCase)))      
     {
-        return Results.BadRequest("Coupon already exists with same Id or name!");
+        return Results.BadRequest("Coupon already exists with same Name!");
     }
     else
     {
-        CouponStore.couponList.Add(coupon);
+        var couponId = CouponStore.couponList.Max(coupon => coupon.Id) + 1;
+        Coupon newCoupon = new()
+        {
+            Id = couponId,
+            Name = coupon.Name,
+            IsActive = coupon.IsActive,
+            Created = DateTime.Now,
+            LastUpdated = DateTime.Now
+        };
+        CouponStore.couponList.Add(newCoupon);
+
+
+        CouponDto couponDto = new()
+        {
+            Id = newCoupon.Id,
+            Name = newCoupon.Name,
+            IsActive = newCoupon.IsActive,
+            Created = newCoupon.Created
+        };
+
         // return Results.Created($"api/coupon/{coupon.Id}",coupon);
-        return Results.CreatedAtRoute("GetCoupon",new { id = coupon.Id }, coupon);
+        return Results.CreatedAtRoute("GetCoupon",new { id = couponId }, couponDto);
     }
 })
     .WithName("CreateCoupon")
-    .Produces<Coupon>(201)
+    .Produces<CouponDto>(201)
     .Produces(400)
-    .Accepts<Coupon>("application/json");
+    .Accepts<CouponCreateDto>("application/json");
 
 app.MapPut("/api/coupon", () => { })
     .WithName("UpdateCoupon")
