@@ -6,6 +6,7 @@ using MagicVilla_CouponAPI.Models;
 using MagicVilla_CouponAPI.Models.DTO;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using System.Diagnostics.Contracts;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,25 +30,40 @@ app.
     MapGet("/api/coupon", (ILogger<Program> _logger) => {
 
         _logger.LogInformation("Listing all Coupons");
-        return Results.Ok(CouponStore.couponList);
+
+        APIResponse<IEnumerable<Coupon>> apiResponse = new()
+        {
+            IsSuccess = true,
+            Result = CouponStore.couponList,
+            StatusCode = HttpStatusCode.OK
+        };
+
+        return Results.Ok(apiResponse);
         })
     .WithName("GetCoupons")
-    .Produces<IEnumerable<Coupon>>(200);
+    .Produces<APIResponse<IEnumerable<Coupon>>>(200);
 
 app.MapGet("/api/coupon/{id:int}", (int id) => {
 
     if (CouponStore.couponList.Any(coupon => coupon.Id == id))
-    { 
-        return Results.Ok(CouponStore.couponList.FirstOrDefault(coupon => coupon.Id == id)); 
+    {
+        APIResponse<Coupon> apiResponse = new()
+        {
+            IsSuccess = true,
+            Result = CouponStore.couponList.FirstOrDefault(coupon => coupon.Id == id),
+            StatusCode = HttpStatusCode.OK
+        };
+        return Results.Ok(apiResponse); 
     }
     else 
     {
+
         return Results.NotFound("Invalid Coupon"); 
     }
 
 })
     .WithName("GetCoupon")
-    .Produces<Coupon>(200); ;
+    .Produces<APIResponse<Coupon>>(200).Produces(404);
 
 app.MapPost("/api/coupon", async (CouponCreateDto coupon, IMapper _mapper, IValidator<CouponCreateDto> _couponCreateValidator, ILogger<Program> _logger) => {
 
